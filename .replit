@@ -1,0 +1,15 @@
+run = "npm run dev --prefix server"
+entrypoint = "server/src/index.ts"
+modules = ["nodejs-20", "postgresql-16"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "npm run start --prefix server"]
+build = ["sh", "-c", "npm install --prefix server && npm run build --prefix server"]
+deploymentTarget = "autoscale"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
