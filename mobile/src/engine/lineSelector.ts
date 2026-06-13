@@ -5,6 +5,29 @@
 import { Line, EngineEvent } from "../types";
 import { LINE_BANK } from "../data/lineBank";
 
+// Build the slot values for a given prompt. `{n}` is context-dependent — it
+// means metres-remaining in the final stretch, seconds-off-pace when slipping,
+// and the km/split count elsewhere — so it's resolved per event here, in one
+// place shared by the app and the simulator.
+export function buildSlots(
+  event: EngineEvent,
+  ctx: { distanceM: number; targetDistanceM: number; targetPaceS?: number; curPaceS: number | null }
+): SlotValues {
+  const km = Math.max(1, Math.floor(ctx.distanceM / 1000));
+  const metresRemaining = Math.max(0, Math.round(ctx.targetDistanceM - ctx.distanceM));
+  let n: string;
+  if (event === "FINAL_STRETCH") n = String(metresRemaining);
+  else if ((event === "SLIPPING" || event === "AHEAD") && ctx.curPaceS && ctx.targetPaceS)
+    n = String(Math.abs(ctx.curPaceS - ctx.targetPaceS));
+  else n = String(km);
+  return {
+    pace: ctx.targetPaceS ? fmtPace(ctx.targetPaceS) : ctx.curPaceS ? fmtPace(ctx.curPaceS) : "this pace",
+    dist: fmtDist(ctx.targetDistanceM),
+    km: String(km),
+    n,
+  };
+}
+
 // Generic fallbacks so the coach NEVER goes silent on an event with no
 // per-coach line yet (content backlog, spec B.9 note).
 const GENERIC: Partial<Record<EngineEvent, string>> = {
@@ -23,7 +46,8 @@ const GENERIC: Partial<Record<EngineEvent, string>> = {
 export interface SlotValues {
   pace?: string; // "5:30"
   dist?: string; // "5.0 km"
-  n?: string;
+  n?: string; // context-dependent number (off-pace seconds, metres remaining, …)
+  km?: string; // current kilometre marker (split lines)
 }
 
 export class LineSelector {
@@ -92,6 +116,7 @@ export function fillSlots(text: string, slots: SlotValues): string {
   return text
     .replace(/\{pace\}/g, slots.pace ?? "target pace")
     .replace(/\{dist\}/g, slots.dist ?? "the distance")
+    .replace(/\{km\}/g, slots.km ?? "this one")
     .replace(/\{n\}/g, slots.n ?? "a few");
 }
 

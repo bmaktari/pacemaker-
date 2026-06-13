@@ -33,6 +33,7 @@ export class CoachingEngine {
   private slippingTicks = 0;
   private strugglingTicks = 0;
   private stoppedTicks = 0;
+  private hasBeenRunning = false; // true once the runner has genuinely been moving
   private lastPromptAt = -999;
   private lastCorrectiveAt = -999;
   private lastPromptWasCorrective = false;
@@ -105,16 +106,19 @@ export class CoachingEngine {
   }
 
   private detectAtRisk(input: TickInput): boolean {
-    if (input.elapsedS < 120) return false;
+    if (input.speedMs > 1.5) this.hasBeenRunning = true;
+    if (input.elapsedS < 120 || !this.hasBeenRunning) return false;
     const inWalkPhase = this.target.mode === "COMPLETION" && this.intervalPhase === "walk";
-    if (inWalkPhase) return false;
-    if (input.speedMs < 0.3 && this.state !== "UNSCHEDULED_STOP") {
+    if (inWalkPhase) { this.stoppedTicks = 0; return false; }
+    // Near-stop while a pace reading can't be computed (collapsed/erratic GPS).
+    // 0.5 m/s threshold accounts for the smoothing filter's lag on a hard stop.
+    if (input.speedMs < 0.5 && this.state !== "UNSCHEDULED_STOP") {
       this.stoppedTicks++;
     } else {
       this.stoppedTicks = 0;
     }
-    // ~30s of near-total stop straight after running pace = possible distress.
-    return this.stoppedTicks >= 3 && this.state !== "WARMUP" && this.state !== "AT_RISK";
+    // ~30 s of near-total stop straight after running pace = possible distress.
+    return this.stoppedTicks >= 3 && this.state !== "AT_RISK";
   }
 
   private milestones(input: TickInput, splits: number[]): Prompt | null {
@@ -159,10 +163,14 @@ export class CoachingEngine {
     const target = this.target.targetPaceS!;
     const tol = this.target.toleranceS ?? 15;
 
-    if (!hasEnoughData || paceS === null || elapsedS < 60) {
+    if (!hasEnoughData || elapsedS < 60) {
       if (this.state !== "AT_RISK") this.state = "WARMUP";
       return null;
     }
+    // No pace reading mid-run = stopped/erratic GPS. Don't reset to WARMUP
+    // (that would discard runner state and starve AT_RISK detection); hold
+    // state and let detectAtRisk accumulate stopped ticks.
+    if (paceS === null) return null;
 
     const delta = paceS - target; // positive = slower than target
     const frac = this.target.distanceM > 0 ? input.distanceM / this.target.distanceM : 0;

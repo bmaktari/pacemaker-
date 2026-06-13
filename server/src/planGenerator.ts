@@ -76,7 +76,7 @@ export function generatePlan(
     for (let w = 1; w <= 8; w++) {
       const taper = w >= 7 ? 0.9 : 1;
       const runs: PlannedRun[] = [];
-      const types: PlannedRun["type"][] = ["easy", "tempo", "intervals", "long"];
+      const types = ["easy", "tempo", "intervals", "long"] as const;
       days.forEach((day, i) => {
         const t = types[i % types.length];
         const cfg = {

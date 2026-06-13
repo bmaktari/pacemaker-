@@ -18,7 +18,7 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
     return;
   }
   try {
-    const payload = jwt.verify(header.slice(7), JWT_SECRET) as { sub: number };
+    const payload = jwt.verify(header.slice(7), JWT_SECRET) as jwt.JwtPayload;
     req.userId = Number(payload.sub);
     next();
   } catch {

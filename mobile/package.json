@@ -6,7 +6,9 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "tunnel": "expo start --tunnel"
+    "tunnel": "expo start --tunnel",
+    "sim": "tsx sim/simulate.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "1.23.1",
@@ -21,6 +23,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.0",
     "@types/react": "~18.3.12",
+    "tsx": "^4.19.2",
     "typescript": "~5.3.3"
   }
 }
