@@ -5,7 +5,10 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
+    "newArchEnabled": true,
     "android": {
       "package": "com.pacemaker.app",
       "permissions": [
@@ -24,7 +27,9 @@
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ]
   }
 }
